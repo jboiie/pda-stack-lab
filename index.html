@@ -27,10 +27,11 @@
   --c-0:#4C74D6; --c-a:#4C74D6; --c-1:#8F6F00; --c-b:#8F6F00; --c-Z:#7A776B; color-scheme:dark}
 
 *{box-sizing:border-box}
+html{overflow-y:scroll;scrollbar-gutter:stable}
 [hidden]{display:none!important}
 sup{font-size:.7em;line-height:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;margin:0;
-  border-top:8px solid var(--ink);
+  border-top:8px solid var(--ink);overflow-anchor:none;
   padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
 h1,h2,h3{font-family:var(--font-body);margin:0;text-wrap:balance;line-height:1.1}
@@ -107,29 +108,29 @@ button,input,select{font:inherit;color:inherit;border-radius:0}
 .cell.endc{background:transparent;border:2px dashed var(--ink2);color:var(--ink2);font-size:16px}
 .head{position:absolute;top:-30px;left:0;width:40px;text-align:center;transition:transform .4s cubic-bezier(.3,.9,.3,1);color:var(--hot);font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.07em;pointer-events:none;text-transform:uppercase}
 .head::after{content:"";display:block;margin:2px auto 0;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:12px solid var(--hot)}
-.tapenote{font-size:13px;color:var(--ink2);margin-top:6px}
+.tapenote{font-size:13px;color:var(--ink2);margin-top:6px;min-height:40px}
 
 /* machine */
 .machine{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:20px;align-items:stretch}
 @media(max-width:720px){.machine{grid-template-columns:minmax(0,1fr)}}
 .dia{overflow-x:auto}
 .dia svg{width:100%;height:auto;min-width:340px;display:block}
-.edge{fill:none;stroke:var(--ink2);stroke-width:2}
+.edge{fill:none;stroke:var(--ink2);stroke-width:2;transition:stroke .35s,stroke-width .35s}
 .edge.on{stroke:var(--hot);stroke-width:3.5}
 .edge.pv{stroke:var(--ink);stroke-width:3;stroke-dasharray:7 5}
-.elab{font-family:var(--font-mono);font-size:13px;fill:var(--ink2)}
+.elab{font-family:var(--font-mono);font-size:13px;fill:var(--ink2);transition:fill .35s}
 .elab.on{fill:var(--hot);font-weight:700}
 .elab.pv{fill:var(--ink);font-weight:700}
-.node{fill:var(--panel);stroke:var(--ink);stroke-width:2.5}
+.node{fill:var(--panel);stroke:var(--ink);stroke-width:2.5;transition:fill .35s,stroke .35s,stroke-width .35s}
 .node.cur{fill:var(--hot-soft);stroke:var(--hot);stroke-width:4}
 .ntxt{font-family:var(--font-body);font-weight:800;font-size:20px;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
 .dcap{font-size:12px;fill:var(--ink2);font-family:var(--font-body)}
 .tubewrap{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px}
 .tubelab{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);font-weight:500}
 .tube{position:relative;width:226px;height:500px;overflow:hidden;padding:12px 12px 0 46px;border:4px solid var(--ink);border-top:none;background:var(--bg);display:flex;flex-direction:column;justify-content:flex-end}
-.well{display:flex;flex-direction:column;gap:5px;padding-bottom:12px}
-.chip{position:relative;height:42px;border:2px solid var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:#fff;flex:none}
-.chip b{font-family:var(--font-mono);font-size:22px;line-height:1}
+.well{display:flex;flex-direction:column;padding-bottom:12px}
+.chip{position:relative;height:var(--ch,42px);border:2px solid var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:#fff;flex:none;overflow:hidden;transition:height .4s cubic-bezier(.3,.8,.3,1),padding .4s,border-width .4s}
+.chip b{font-family:var(--font-mono);font-size:var(--cf,22px);line-height:1;transition:font-size .4s cubic-bezier(.3,.8,.3,1)}
 .chip small{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
 .chip.kS{background:var(--ink);color:var(--bg);outline:2px solid var(--ink);outline-offset:-6px;border-color:var(--ink)}
 .chip.k0{background:var(--c-0)}.chip.k1{background:var(--c-1)}.chip.ka{background:var(--c-a)}
@@ -137,20 +138,16 @@ button,input,select{font:inherit;color:inherit;border-radius:0}
 .chip.kZ b,.chip.kZ small{background:var(--panel);padding:0 5px}
 .well .chip:first-child::before{content:"top";position:absolute;left:-42px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--hot)}
 .well .chip:first-child::after{content:"";position:absolute;left:-12px;top:50%;transform:translateY(-50%);border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid var(--hot)}
-/* chips shrink as the stack grows so the tube never changes height and the page never jumps */
-.tube[data-size="m"] .well{gap:3px}
-.tube[data-size="m"] .chip{height:24px;padding:0 10px;border-width:1.5px}
-.tube[data-size="m"] .chip b{font-size:15px}
-.tube[data-size="m"] .chip small{display:none}
-.tube[data-size="d"] .well{gap:2px}
-.tube[data-size="d"] .chip{height:13px;padding:0 8px;border-width:1px;outline:0}
-.tube[data-size="d"] .chip b{font-size:9px}
-.tube[data-size="d"] .chip small{display:none}
+/* chip height is set from JS (--ch) so chips shrink smoothly as the stack grows; the tube itself never changes size */
+.well{gap:4px}
+.tube[data-size="m"] .chip{padding:0 10px;border-width:1.5px;outline:0}
+.tube[data-size="m"] .chip small,.tube[data-size="d"] .chip small{display:none}
+.tube[data-size="d"] .chip{padding:0 8px;border-width:1px;outline:0}
 .tube[data-size="d"] .well .chip:first-child::before,.tube[data-size="d"] .well .chip:first-child::after{transform:translateY(-50%) scale(.8)}
-.chip.enter{animation:drop .45s cubic-bezier(.2,.9,.25,1.15) both}
-.flyer{position:absolute;pointer-events:none;animation:fly .5s ease-in forwards;z-index:3}
-@keyframes drop{from{transform:translateY(-120px);opacity:0}to{transform:none;opacity:1}}
-@keyframes fly{to{transform:translateY(-70px);opacity:0}}
+.chip.enter{animation:drop .55s cubic-bezier(.22,.9,.3,1) both}
+.flyer{position:absolute;pointer-events:none;animation:fly .55s cubic-bezier(.5,0,.8,.6) forwards;z-index:3}
+@keyframes drop{from{transform:translateY(-90px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fly{to{transform:translateY(-60px);opacity:0}}
 .empty{color:var(--ink2);font-size:13px;text-align:center;padding:0 8px 14px}
 .tube.ok{border-color:var(--ok)}
 .tube.bad{border-color:var(--bad);animation:shake .45s}
@@ -167,7 +164,7 @@ button,input,select{font:inherit;color:inherit;border-radius:0}
 .ctl-right{margin-left:auto;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .ctl-right label{font-size:13px;color:var(--ink2);display:flex;gap:6px;align-items:center}
 select{border:1.5px solid var(--ink);background:var(--panel);padding:6px 8px;min-height:38px}
-.status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;align-content:flex-start;min-height:66px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .pill{font-size:13px;font-weight:700;padding:3px 10px;border:1.5px solid var(--ink);background:var(--panel)}
 .pill.ok{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
 .pill.bad{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
@@ -225,7 +222,7 @@ button.mv:hover{background:var(--panel2)}
 .gauge b{color:var(--hot)}
 
 /* log */
-.logbox{max-height:300px;overflow:auto;border:1px solid var(--ink)}
+.logbox{height:300px;overflow:auto;border:1px solid var(--ink)}
 table{border-collapse:collapse;width:100%;font-family:var(--font-mono);font-size:13px}
 th{position:sticky;top:0;background:var(--ink);color:var(--bg);text-align:left;padding:6px 8px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:600}
 td{padding:6px 8px;border-top:1px solid var(--line);white-space:nowrap}
@@ -568,6 +565,7 @@ function load(str) {
   $('#inp').value = S.input;
   buildTape();
   render();
+  reserve();
 }
 function switchQ(id) {
   pause(); S.qid = id;
@@ -597,31 +595,35 @@ function renderTape() {
 
 /* diagram */
 function renderDiagram() {
-  const sp = spec(), d = sp.diagram();
+  const sp = spec(), host = $('#dia');
   const c = cur(), lastId = c.t ? c.t.id : null, hv = S.hover;
   const on = ids => ids.includes(lastId), pv = ids => hv && ids.includes(hv);
+  if (host.dataset.q !== S.qid) buildDiagram(sp, host);
+  host.querySelectorAll('path[data-ids]').forEach(p => {
+    const ids = p.dataset.ids.split(','), cl = on(ids) ? 'on' : pv(ids) ? 'pv' : '';
+    p.setAttribute('class', 'edge ' + cl);
+    p.setAttribute('marker-end', `url(#${cl === 'on' ? 'ahOn' : cl === 'pv' ? 'ahPv' : 'ah'})`);
+  });
+  host.querySelectorAll('circle[data-n]').forEach(n => n.setAttribute('class', 'node' + (n.dataset.n === c.cfg.st ? ' cur' : '')));
+  host.querySelectorAll('text[data-l]').forEach(l => l.setAttribute('class', 'elab ' + (l.dataset.l === lastId ? 'on' : l.dataset.l === hv ? 'pv' : '')));
+}
+function buildDiagram(sp, host) {
+  const d = sp.diagram();
   let svg = `<svg viewBox="${d.vb}" role="img" aria-label="State diagram of the PDA"><defs>
     <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--ink2)"/></marker>
     <marker id="ahOn" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--hot)"/></marker>
     <marker id="ahPv" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--ink)"/></marker></defs>`;
   svg += `<path class="edge" d="${d.start.d}" marker-end="url(#ah)"/><text class="dcap" x="${d.start.tx}" y="${d.start.ty}">start</text>`;
-  for (const p of d.paths) {
-    const cl = on(p.ids) ? 'on' : pv(p.ids) ? 'pv' : '';
-    const mk = on(p.ids) ? 'ahOn' : pv(p.ids) ? 'ahPv' : 'ah';
-    svg += `<path class="edge ${cl}" d="${p.d}" marker-end="url(#${mk})"/>`;
-  }
+  for (const p of d.paths) svg += `<path class="edge" data-ids="${p.ids.join(',')}" d="${p.d}" marker-end="url(#ah)"/>`;
   for (const n of d.nodes) {
-    const isCur = n.id === c.cfg.st;
-    svg += `<circle class="node ${isCur ? 'cur' : ''}" cx="${n.x}" cy="${n.y}" r="32"/>`;
-    if (n.final) svg += `<circle class="node ${isCur ? 'cur' : ''}" cx="${n.x}" cy="${n.y}" r="25" style="fill:none"/>`;
+    svg += `<circle class="node" data-n="${n.id}" cx="${n.x}" cy="${n.y}" r="32"/>`;
+    if (n.final) svg += `<circle class="node" data-n="${n.id}" cx="${n.x}" cy="${n.y}" r="25" style="fill:none"/>`;
     svg += `<text class="ntxt" x="${n.x}" y="${n.y}">${stLab(n.id)}</text>`;
   }
-  for (const l of d.labels) {
-    const cl = l.id === lastId ? 'on' : l.id === hv ? 'pv' : '';
-    svg += `<text class="elab ${cl}" x="${l.x}" y="${l.y}" text-anchor="${l.anchor}">${esc(l.text)}</text>`;
-  }
+  for (const l of d.labels) svg += `<text class="elab" data-l="${l.id}" x="${l.x}" y="${l.y}" text-anchor="${l.anchor}">${esc(l.text)}</text>`;
   svg += `<text class="dcap" x="${d.caption.x}" y="${d.caption.y}" text-anchor="middle">${esc(d.caption.text)}</text></svg>`;
-  $('#dia').innerHTML = svg;
+  host.innerHTML = svg;
+  host.dataset.q = S.qid;
 }
 
 /* stack */
@@ -636,7 +638,10 @@ function makeChip(c) {
 }
 function renderStack() {
   const stack = cur().cfg.stack, well = $('#well'), tube = $('#tube');
-  tube.dataset.size = stack.length <= 9 ? 'n' : stack.length <= 16 ? 'm' : 'd';
+  const cnt = Math.max(stack.length, 1), ch = Math.max(9, Math.min(42, Math.floor((472 - 4 * (cnt - 1)) / cnt)));
+  tube.style.setProperty('--ch', ch + 'px');
+  tube.style.setProperty('--cf', Math.min(22, Math.floor(ch * .52)) + 'px');
+  tube.dataset.size = ch >= 34 ? 'n' : ch >= 17 ? 'm' : 'd';
   const keep = new Set(stack.map(c => c.id));
   const wrap = tube.getBoundingClientRect();
   for (const [id, el] of [...chipEls]) {
@@ -820,6 +825,30 @@ function render() {
   S.hover = null;
   renderTape(); renderDiagram(); renderStack(); renderExplain(); renderFork(); renderLens(); renderLog(); renderStatus(); renderControls();
   document.querySelectorAll('#presets .pchip').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === S.input));
+  // side cards only ever grow while a string is loaded, so the page height stays put between steps
+  if ($('#explain').offsetWidth > 120) for (const c of document.querySelectorAll('#explain,#forkcard,#lens')) if (c.offsetHeight > (parseFloat(c.style.minHeight) || 0)) c.style.minHeight = c.offsetHeight + 'px';
+}
+/* measure every step of the accepting run once, so the side cards start at their tallest size */
+function reserve(keep) {
+  if ($('#explain').offsetWidth <= 120) return; // page hidden or not laid out yet: nothing to measure
+  const cards = [...document.querySelectorAll('#explain,#forkcard,#lens')];
+  const mx = cards.map(c => keep ? parseFloat(c.style.minHeight) || 0 : 0);
+  cards.forEach(c => c.style.minHeight = '');
+  const sp = spec(), saved = { hist: S.hist, pos: S.pos, hover: S.hover };
+  const path = [{ cfg: initCfg(sp), t: null }];
+  for (let k = 0; k < 120; k++) {
+    const cfg = path[path.length - 1].cfg, o = suggest(sp, S.input, cfg, memo());
+    if (!o) break;
+    path.push({ cfg: applyMove(sp, S.input, cfg, o.t, false), t: o.t });
+  }
+  S.hist = path;
+  for (let k = 0; k < path.length; k++) {
+    S.pos = k; renderExplain(); renderFork(); renderLens();
+    cards.forEach((c, j) => { mx[j] = Math.max(mx[j], c.offsetHeight); });
+  }
+  Object.assign(S, saved);
+  cards.forEach((c, j) => { c.style.minHeight = mx[j] + 'px'; });
+  renderExplain(); renderFork(); renderLens();
 }
 
 /* actions */
@@ -891,8 +920,9 @@ $('#bReset').addEventListener('click', () => { pause(); S.pos = 0; render(); });
 $('#bBack').addEventListener('click', stepBack);
 $('#bStep').addEventListener('click', () => { pause(); stepForward(); });
 $('#bPlay').addEventListener('click', () => { if (S.mode === 'drive') return; S.playing ? pause() : play(); });
-$('#mWatch').addEventListener('click', () => { S.mode = 'watch'; render(); });
-$('#mDrive').addEventListener('click', () => { pause(); S.mode = 'drive'; render(); });
+$('#mWatch').addEventListener('click', () => { S.mode = 'watch'; render(); reserve(true); });
+$('#mDrive').addEventListener('click', () => { pause(); S.mode = 'drive'; render(); reserve(true); });
+let rzT; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(reserve, 200); });
 $('#speed').addEventListener('change', e => { S.speed = +e.target.value; });
 $('#hints').addEventListener('change', e => { S.hints = e.target.checked; renderFork(); });
 document.addEventListener('keydown', e => {
