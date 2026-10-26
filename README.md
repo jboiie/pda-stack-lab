@@ -2,6 +2,8 @@
 
 **Theory of Computation (FLA) · Online Submission**
 
+# 🚀 [**▶ OPEN LIVE DEMO: https://jboiie.github.io/pda-stack-lab/**](https://jboiie.github.io/pda-stack-lab/)
+
 > Submitted **online** by the team below. Interactive pushdown automata simulator + project poster.
 
 ## Team
@@ -28,7 +30,7 @@ Features: step forward/back, live stack view, all nondeterministic choices shown
 
 ## Run
 
-Open `index.html` in a browser.
+Visit **[jboiie.github.io/pda-stack-lab](https://jboiie.github.io/pda-stack-lab/)**, or open `index.html` in a browser.
 
 ---
 *JAI (RA2411026010131) · Aggam Singh Arora (RA2411026010139) · Aidam Shashank (RA2411026010136) — online submission.*
