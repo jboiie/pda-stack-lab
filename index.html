@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PDA Stack Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* Concept: a lab bench. Tape on top, machine diagram beside a glass tube that holds the stack, running commentary on the right. */
+:root{
+  --bg:#EDF1F0; --panel:#FFFFFF; --panel2:#E3EAE8; --ink:#13211F; --ink2:#44585A; --line:#C6D2CF;
+  --hot:#B87400; --hot-soft:#F7E6C4; --ok:#14733F; --ok-soft:#DDF1E4; --bad:#B3261E; --bad-soft:#F9E1DE;
+  --c-S:#6B4FC4; --c-0:#0E7C86; --c-1:#C4452B; --c-a:#2D5FD0; --c-b:#B0357A; --c-Z:#5A6663;
+  --tx-S:#6B4FC4; --tx-0:#0E7C86; --tx-1:#C4452B; --tx-a:#2D5FD0; --tx-b:#B0357A; --tx-Z:#5A6663;
+  --font-display:'Bricolage Grotesque',system-ui,sans-serif;
+  --font-body:'Instrument Sans',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1716; --panel:#16221F; --panel2:#1E2D2A; --ink:#E6F0EE; --ink2:#9DB3B0; --line:#2C3E3B;
+  --hot:#FFB224; --hot-soft:#3A2D0C; --ok:#5FD08F; --ok-soft:#133323; --bad:#FF8A80; --bad-soft:#3A1A18;
+  --tx-S:#B9A6FF; --tx-0:#5FD3DD; --tx-1:#FF9A85; --tx-a:#8FB0FF; --tx-b:#FF9CCB; --tx-Z:#A9B8B5; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1716; --panel:#16221F; --panel2:#1E2D2A; --ink:#E6F0EE; --ink2:#9DB3B0; --line:#2C3E3B;
+  --hot:#FFB224; --hot-soft:#3A2D0C; --ok:#5FD08F; --ok-soft:#133323; --bad:#FF8A80; --bad-soft:#3A1A18;
+  --tx-S:#B9A6FF; --tx-0:#5FD3DD; --tx-1:#FF9A85; --tx-a:#8FB0FF; --tx-b:#FF9CCB; --tx-Z:#A9B8B5; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+sup{font-size:.7em;line-height:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;
+  padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.1}
+p{margin:0}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--hot);outline-offset:2px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);font-weight:600}
+.mono{font-family:var(--font-mono)}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;justify-content:space-between}
+.top h1{font-size:clamp(34px,5vw,56px);font-weight:800;letter-spacing:-.02em}
+.lede{max-width:56ch;color:var(--ink2);margin-top:8px}
+.team{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.team li{display:flex;flex-direction:column;gap:1px;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:6px 12px}
+.team b{font-family:var(--font-display);font-size:15px;font-weight:700}
+.team span{font-family:var(--font-mono);font-size:12px;color:var(--ink2)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{border:1.5px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 16px;cursor:pointer;text-align:left;min-height:44px;display:flex;flex-direction:column;gap:2px}
+.tab b{font-family:var(--font-display);font-size:17px}
+.tab span{font-size:13px;color:var(--ink2)}
+.tab[aria-selected="true"]{border-color:var(--ink);box-shadow:0 0 0 1.5px var(--ink)}
+
+/* brief */
+.brief{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.bcell{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.bcell.wide{grid-column:span 2}
+.bcell p{font-size:14px}
+.bcell .big{font-family:var(--font-mono);font-size:20px;font-weight:500}
+@media(max-width:560px){.bcell.wide{grid-column:auto}}
+
+/* layout */
+.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+/* In You drive mode the choices sit at the top of the side panel, so they never move under your cursor */
+.drive #forkcard{order:-1}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}
+.card h3{font-size:18px;margin-bottom:10px}
+.kicker{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);font-weight:600}
+
+/* input row */
+.inrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.inrow label{font-weight:600;font-size:13px}
+.field{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 12px;font-family:var(--font-mono);font-size:16px;min-height:44px;width:min(260px,100%);letter-spacing:.06em}
+.btn{border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);border-radius:10px;padding:8px 16px;min-height:44px;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pchip{font-family:var(--font-mono);font-size:14px;border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 12px;min-height:36px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+.pchip:hover{border-color:var(--ink)}
+.pchip[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 1.5px var(--ink)}
+.tick{font-family:var(--font-body);font-size:12px;font-weight:700;padding:1px 7px;border-radius:999px}
+.tick.y{background:var(--ok-soft);color:var(--ok)}
+.tick.n{background:var(--bad-soft);color:var(--bad)}
+
+/* tape */
+.tapebox{overflow-x:auto;padding:34px 4px 6px;position:relative}
+.tape{position:relative;display:flex;gap:4px;width:max-content;min-width:100%}
+.cell{width:40px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;font-size:20px;color:#fff;flex:none;transition:background .3s,color .3s,opacity .3s}
+.cell.k0{background:var(--c-0)}.cell.k1{background:var(--c-1)}.cell.ka{background:var(--c-a)}.cell.kb{background:var(--c-b)}
+.cell.done{background:var(--panel2);color:var(--ink2);opacity:.75;text-decoration:line-through;text-decoration-thickness:2px}
+.cell.endc{background:transparent;border:2px dashed var(--line);color:var(--ink2);font-size:16px}
+.head{position:absolute;top:-30px;left:0;width:40px;text-align:center;transition:transform .45s cubic-bezier(.3,.9,.3,1);color:var(--hot);font-size:11px;font-weight:700;letter-spacing:.08em;pointer-events:none;text-transform:uppercase}
+.head::after{content:"";display:block;margin:2px auto 0;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:12px solid var(--hot)}
+.tapenote{font-size:13px;color:var(--ink2);margin-top:6px}
+
+/* machine */
+.machine{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;align-items:stretch}
+@media(max-width:720px){.machine{grid-template-columns:minmax(0,1fr)}}
+.dia{overflow-x:auto}
+.dia svg{width:100%;height:auto;min-width:340px;display:block}
+.edge{fill:none;stroke:var(--ink2);stroke-width:2;transition:stroke .2s}
+.edge.on{stroke:var(--hot);stroke-width:3.5}
+.edge.pv{stroke:var(--ink);stroke-width:3;stroke-dasharray:7 5}
+.elab{font-family:var(--font-mono);font-size:13px;fill:var(--ink2)}
+.elab.on{fill:var(--hot);font-weight:700}
+.elab.pv{fill:var(--ink);font-weight:700}
+.node{fill:var(--panel);stroke:var(--ink);stroke-width:2.5;transition:fill .3s}
+.node.cur{fill:var(--hot-soft);stroke:var(--hot);stroke-width:4}
+.ntxt{font-family:var(--font-display);font-weight:700;font-size:20px;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.dcap{font-size:12px;fill:var(--ink2);font-family:var(--font-body)}
+.tubewrap{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px}
+.tubelab{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);font-weight:600}
+.tube{position:relative;width:190px;height:500px;overflow:hidden;padding:12px 12px 0 12px;border:3px solid var(--ink2);border-top:none;border-radius:0 0 22px 22px;background:linear-gradient(90deg,transparent 0 8%,color-mix(in srgb,var(--panel2) 70%,transparent) 8% 12%,transparent 12%);display:flex;flex-direction:column;justify-content:flex-end}
+.well{display:flex;flex-direction:column;gap:6px;padding-bottom:12px}
+.tube.full{animation:none}
+.chip{position:relative;height:42px;border-radius:9px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;color:#fff;flex:none;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+.chip b{font-family:var(--font-mono);font-size:22px;line-height:1}
+.chip small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.9}
+.chip.kS{background:var(--c-S);border:2.5px double rgba(255,255,255,.75)}
+.chip.k0{background:var(--c-0)}.chip.k1{background:var(--c-1)}.chip.ka{background:var(--c-a)}
+.chip.kZ{background:repeating-linear-gradient(135deg,var(--c-Z) 0 8px,#6F7C79 8px 16px)}
+.well .chip:first-child::before{content:"top";position:absolute;left:-46px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--hot)}
+.well .chip:first-child::after{content:"";position:absolute;left:-14px;top:50%;transform:translateY(-50%);border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid var(--hot)}
+/* chips shrink as the stack grows so the tube never changes height and the page never jumps */
+.tube[data-size="m"] .well{gap:3px}
+.tube[data-size="m"] .chip{height:24px;padding:0 10px;border-radius:6px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.18)}
+.tube[data-size="m"] .chip b{font-size:15px}
+.tube[data-size="m"] .chip small{display:none}
+.tube[data-size="d"] .well{gap:2px}
+.tube[data-size="d"] .chip{height:13px;padding:0 8px;border-radius:4px;box-shadow:none}
+.tube[data-size="d"] .chip b{font-size:10px}
+.tube[data-size="d"] .chip small{display:none}
+.tube[data-size="d"] .well .chip:first-child::before,.tube[data-size="d"] .well .chip:first-child::after{transform:translateY(-50%) scale(.8)}
+.chip.enter{animation:drop .5s cubic-bezier(.2,.9,.25,1.15) both}
+.flyer{position:absolute;pointer-events:none;animation:fly .5s ease-in forwards;z-index:3}
+@keyframes drop{from{transform:translateY(-120px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+@keyframes fly{to{transform:translateY(-70px) scale(.8);opacity:0}}
+.empty{color:var(--ink2);font-size:13px;text-align:center;padding:0 8px 14px}
+.tube.ok{border-color:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
+.tube.bad{border-color:var(--bad);animation:shake .45s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.floor{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);font-weight:600}
+.stackinfo{font-family:var(--font-mono);font-size:13px;color:var(--ink2);text-align:center;height:20px;line-height:20px;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:8px 14px;min-height:44px;cursor:pointer;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.ctl-right{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.ctl-right label{font-size:13px;color:var(--ink2);display:flex;gap:6px;align-items:center}
+select{border:1.5px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 8px;min-height:36px}
+.status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.pill{font-size:13px;font-weight:600;padding:4px 12px;border-radius:999px;background:var(--panel2)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.hot{background:var(--hot-soft);color:var(--hot)}
+
+/* explain */
+.explain h2{font-size:24px;margin:6px 0 10px;letter-spacing:-.01em}
+.delta{display:inline-block;font-family:var(--font-mono);font-size:14px;background:var(--panel2);padding:6px 10px;border-radius:8px;margin:10px 0;max-width:100%;overflow-x:auto;white-space:nowrap}
+.why{font-size:14px;color:var(--ink2);border-top:1px solid var(--line);padding-top:10px;margin-top:6px}
+.why b{color:var(--ink)}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.ba div{background:var(--bg);border-radius:10px;padding:8px 10px;font-family:var(--font-mono);font-size:13px;min-width:0;overflow-wrap:anywhere}
+.ba span{display:block;font-family:var(--font-body);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin-bottom:2px}
+.verdict{margin-top:14px;padding:12px 14px;border-radius:12px;font-weight:500}
+.verdict.ok{background:var(--ok-soft);color:var(--ok)}
+.verdict.bad{background:var(--bad-soft);color:var(--bad)}
+.verdict b{display:block;font-family:var(--font-display);font-size:18px;margin-bottom:2px}
+
+/* fork */
+.fork{display:flex;flex-direction:column;gap:8px}
+.mv{width:100%;text-align:left;border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;min-height:48px}
+button.mv{cursor:pointer}
+button.mv:hover{border-color:var(--ink)}
+.mv.pick{border-color:var(--hot);background:var(--hot-soft)}
+.mv.prev{border-style:dashed;border-color:var(--ink2)}
+.mv .bd.inl{margin-left:0}
+.mv .nm{font-weight:600}
+.mv .dl{font-family:var(--font-mono);font-size:12px;color:var(--ink2);flex-basis:100%}
+.mv .bd{margin-left:auto;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px}
+.bd.y{background:var(--ok-soft);color:var(--ok)}
+.bd.n{background:var(--bad-soft);color:var(--bad)}
+.bd.q{background:var(--panel2);color:var(--ink2)}
+.forknote{font-size:13px;color:var(--ink2);margin-top:10px}
+
+/* lens */
+.form{font-family:var(--font-mono);font-size:19px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;line-height:1.7}
+.form .arrow{color:var(--ink2);font-size:15px}
+.form .f{padding:2px 8px;border-radius:8px;background:var(--bg)}
+.form .f.last{background:var(--hot-soft);outline:1.5px solid var(--hot)}
+.form i{font-style:normal;font-weight:700;color:var(--tx-S)}
+.form u{text-decoration:none;font-weight:600}
+.consumed{color:var(--ink)}
+.meters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.meter{background:var(--bg);border-radius:10px;padding:8px 10px}
+.meter span{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.meter b{font-family:var(--font-mono);font-size:22px}
+.lensnote{font-size:13px;color:var(--ink2);margin-top:10px}
+.pairs{display:flex;flex-wrap:wrap;gap:6px;min-height:50px;align-items:flex-end}
+.pr{display:flex;flex-direction:column;align-items:center;gap:2px}
+.tok{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-mono);font-weight:700}
+.tok.a{background:var(--c-a)}.tok.b{background:var(--c-b)}
+.tok.spare{box-shadow:0 0 0 3px var(--hot)}
+.gauge{margin-top:10px;font-family:var(--font-mono);font-size:17px}
+.gauge b{color:var(--hot)}
+
+/* log */
+.logbox{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-family:var(--font-mono);font-size:13px}
+th{position:sticky;top:0;background:var(--panel2);text-align:left;padding:6px 8px;font-family:var(--font-body);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+td{padding:6px 8px;border-top:1px solid var(--line);white-space:nowrap}
+tr.row{cursor:pointer}
+tr.row:hover td{background:var(--panel2)}
+tr.row.now td{background:var(--hot-soft);font-weight:700}
+tr.row.fut td{opacity:.4}
+
+/* build */
+.build{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
+.num{width:72px;border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:8px;min-height:44px;font-family:var(--font-mono);font-size:16px}
+.how{font-size:13px;color:var(--ink2)}
+.how kbd{font-family:var(--font-mono);background:var(--panel2);border-radius:5px;padding:1px 6px;font-size:12px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){
+  .chip.enter,.flyer,.tube.bad{animation:none}
+  .head{transition:none}
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Theory of Computation · Pushdown Automata</p>
+      <h1>PDA Stack Lab</h1>
+      <p class="lede">Two pushdown automata you can run, step back, break and take apart. Watch the stack grow and shrink, see every choice the machine could make, or take the controls yourself.</p>
+      <ul class="team" aria-label="Team">
+        <li><b>JAI</b><span>RA2411026010131</span></li>
+        <li><b>Aggam Singh Arora</b><span>RA2411026010139</span></li>
+        <li><b>Aidam Shashank</b><span>RA2411026010136</span></li>
+      </ul>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Question" id="tabs"></div>
+  </header>
+
+  <section class="brief" id="brief" aria-label="Question summary"></section>
+
+  <main class="grid">
+    <div class="col">
+      <section class="card" aria-label="Input">
+        <div class="inrow">
+          <label for="inp">Input string</label>
+          <input class="field" id="inp" autocomplete="off" spellcheck="false" inputmode="text" aria-describedby="alpha">
+          <button class="btn" id="loadBtn">Load</button>
+          <span class="how" id="alpha"></span>
+        </div>
+        <div class="chips" id="presets" role="group" aria-label="Sample strings"></div>
+      </section>
+
+      <section class="card" aria-label="Machine">
+        <p class="kicker">Input tape</p>
+        <div class="tapebox" id="tapebox"><div class="tape" id="tape"></div></div>
+        <p class="tapenote" id="tapenote"></p>
+        <div class="machine" style="margin-top:14px">
+          <div>
+            <p class="kicker">State diagram</p>
+            <div class="dia" id="dia"></div>
+          </div>
+          <div class="tubewrap">
+            <p class="tubelab">Stack</p>
+            <div class="tube" id="tube"><div class="well" id="well" aria-live="polite"></div></div>
+            <p class="stackinfo" id="stackinfo"></p>
+          </div>
+        </div>
+        <div class="status" id="status"></div>
+      </section>
+
+      <section class="card" aria-label="Controls">
+        <div class="controls">
+          <button class="btn ghost" id="bReset" title="Reset (R)">Reset</button>
+          <button class="btn ghost" id="bBack" title="Back (←)">Back</button>
+          <button class="btn" id="bStep" title="Step (→)">Step</button>
+          <button class="btn" id="bPlay" title="Play or pause (Space)">Play</button>
+          <div class="ctl-right">
+            <div class="seg" role="group" aria-label="Mode">
+              <button id="mWatch" aria-pressed="true">Watch</button>
+              <button id="mDrive" aria-pressed="false">You drive</button>
+            </div>
+            <label>Speed
+              <select id="speed"><option value="1500">Slow</option><option value="950" selected>Normal</option><option value="450">Fast</option></select>
+            </label>
+            <label id="hintWrap" hidden><input type="checkbox" id="hints"> Show hints</label>
+          </div>
+        </div>
+        <p class="how" style="margin-top:10px">Keys: <kbd>→</kbd> step, <kbd>←</kbd> back, <kbd>Space</kbd> play or pause (Watch mode only), <kbd>R</kbd> reset. In <b>You drive</b> mode nothing moves until you pick a move from the choices list.</p>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card explain" aria-label="Explanation" id="explain"></section>
+      <section class="card" aria-label="Choices" id="forkcard"></section>
+      <section class="card" aria-label="Lens" id="lens"></section>
+      <section class="card" aria-label="Trace table">
+        <h3>Trace table</h3>
+        <div class="logbox"><table id="log"></table></div>
+        <p class="how" style="margin-top:8px">Click any row to jump back to that moment.</p>
+      </section>
+      <section class="card" aria-label="Try other strings">
+        <h3>Try your own</h3>
+        <div class="chips" id="explorer" style="margin-top:0"></div>
+        <div class="build" id="build"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+// ENGINE-START
+const sub = s => s.replace(/[0-9]/g, d => '₀₁₂₃₄₅₆₇₈₉'[d]);
+const lab = s => s === 'Z' ? 'Z₀' : s;
+const stLab = s => s.replace(/q(\d)/, (m, d) => 'q' + '₀₁₂₃'[d]);
+const rad = d => d * Math.PI / 180;
+const ptAt = (cx, cy, r, a) => [cx + r * Math.cos(rad(a)), cy + r * Math.sin(rad(a))];
+const f1 = n => n.toFixed(1);
+function loopPath(cx, cy, r, a) {
+  const [x1, y1] = ptAt(cx, cy, r, a - 18), [x2, y2] = ptAt(cx, cy, r, a + 18);
+  const [c1x, c1y] = ptAt(cx, cy, r + 78, a - 32), [c2x, c2y] = ptAt(cx, cy, r + 78, a + 32);
+  return `M${f1(x1)} ${f1(y1)} C${f1(c1x)} ${f1(c1y)} ${f1(c2x)} ${f1(c2y)} ${f1(x2)} ${f1(y2)}`;
+}
+const tlabel = t => `${t.read || 'ε'}, ${lab(t.top)} / ${t.push ? t.push.split('').map(lab).join('') : 'ε'}`;
+const delta = t => `δ(${stLab(t.from)}, ${t.read || 'ε'}, ${lab(t.top)}) = (${stLab(t.to)}, ${t.push ? t.push.split('').map(lab).join('') : 'ε'})`;
+const stackStr = st => st.length ? st.map(c => lab(c.s)).join('') : 'ε';
+const countCh = (s, ch) => s.split(ch).length - 1;
+
+const SPECS = {
+  q1: {
+    id: 'q1', tab: 'Q1', tabSub: 'Grammar to PDA',
+    statement: 'Convert S → 0S111 | ε into a PDA and test 00111111.',
+    lang: '0<sup>n</sup>1<sup>3n</sup>', accept: 'empty', acceptText: 'Accepts by empty stack',
+    idea: 'The stack holds whatever the grammar still has to produce. A variable on top is replaced by a rule. A terminal on top must match the next input symbol.',
+    alphabet: '01', start: 'q', init: ['S'], finals: [],
+    presets: ['00111111', '0111', '', '01111', '0011', '000111111111'],
+    T: [
+      { id: 't1', from: 'q', read: '', top: 'S', to: 'q', push: '0S111', name: 'Expand S → 0S111' },
+      { id: 't2', from: 'q', read: '', top: 'S', to: 'q', push: '', name: 'Erase S → ε' },
+      { id: 't3', from: 'q', read: '0', top: '0', to: 'q', push: '', name: 'Match 0' },
+      { id: 't4', from: 'q', read: '1', top: '1', to: 'q', push: '', name: 'Match 1' }
+    ],
+    prune: (cfg, rem) => cfg.stack.filter(c => c.s !== 'S').length > rem,
+    diagram() {
+      const cx = 210, cy = 170, r = 34, ang = { t1: -125, t2: -55, t3: 55, t4: 125 };
+      const paths = [], labels = [];
+      for (const t of this.T) {
+        const a = ang[t.id];
+        paths.push({ ids: [t.id], d: loopPath(cx, cy, r, a) });
+        const [lx, ly] = ptAt(cx, cy, r + 68, a);
+        const right = Math.cos(rad(a)) > 0;
+        labels.push({ id: t.id, text: tlabel(t), x: lx + (right ? 6 : -6), y: ly + (Math.sin(rad(a)) < 0 ? -4 : 14), anchor: right ? 'start' : 'end' });
+      }
+      return {
+        vb: '0 0 420 340', nodes: [{ id: 'q', x: cx, y: cy, final: false }], paths, labels,
+        start: { d: `M20 ${cy} L${cx - r - 3} ${cy}`, tx: 20, ty: cy - 10 },
+        caption: { x: 210, y: 330, text: 'Accepts when input and stack are both empty' }
+      };
+    },
+    explain(t, before, after, input) {
+      const nx = input[before.i];
+      switch (t.id) {
+        case 't1': return { title: 'Expand with S → 0S111', body: 'The top of the stack is S, a variable. So the machine applies a grammar rule: it pops S and pushes 0S111, which leaves 0 on top. It reads no input.', why: 'The rule goes in right to left so its first symbol sits on top and gets handled first. Each expansion promises one more 0 and three more 1s.' };
+        case 't2': return { title: 'Erase with S → ε', body: 'The machine applies S → ε. It pops S and pushes nothing, so the variable simply disappears. No input is read.', why: 'This ends the recursion. From here on, only terminals are left on the stack, and the machine can only match them against the input.' };
+        case 't3': return { title: 'Match 0', body: `The top of the stack is the terminal 0 and the next input symbol is ${nx}. They agree, so the machine pops the 0 and moves the read head one cell to the right.`, why: 'A terminal on the stack is a promise about what the input must say. Matching it keeps the promise.' };
+        default: return { title: 'Match 1', body: `The top of the stack is the terminal 1 and the next input symbol is ${nx}. They agree, so the machine pops the 1 and moves the read head one cell to the right.`, why: 'Every 0 added three 1s to the stack. This is where they are paid back, one by one.' };
+      }
+    },
+    acceptMsg: (input) => { const n = countCh(input, '0'); return `Input and stack are both empty. The string has ${n} zero${n === 1 ? '' : 's'} followed by ${3 * n} one${3 * n === 1 ? '' : 's'}, so it belongs to 0ⁿ1³ⁿ with n = ${n}.`; },
+    diagnose(cfg, input) {
+      const rem = input.length - cfg.i, top = cfg.stack[0];
+      if (!cfg.stack.length) return `The stack is empty but ${rem} input symbol${rem > 1 ? 's' : ''} (${input.slice(cfg.i)}) ${rem > 1 ? 'are' : 'is'} still unread. With nothing on the stack the machine cannot move.`;
+      if (rem === 0) return `All input has been read but the stack still holds ${stackStr(cfg.stack)}. Acceptance by empty stack needs it to be empty.`;
+      return `The stack top is ${lab(top.s)} but the next input symbol is ${input[cfg.i]}. A terminal on top can only be matched by itself, so the machine is stuck.`;
+    }
+  },
+  q2: {
+    id: 'q2', tab: 'Q2', tabSub: 'More a’s than b’s',
+    statement: 'Construct a PDA for L = {aⁱbʲ | i > j} and test aaabb and aabbb.',
+    lang: 'a<sup>i</sup>b<sup>j</sup> with i &gt; j', accept: 'final', acceptText: 'Accepts by final state q₂',
+    idea: 'Push an a for every a. Pop one a for every b. If at least one a is left over once the b’s are done, jump to the final state.',
+    alphabet: 'ab', start: 'q0', init: ['Z'], finals: ['q2'],
+    presets: ['aaabb', 'aabbb', 'aaa', 'aabb', 'a', 'abab'],
+    T: [
+      { id: 'u1', from: 'q0', read: 'a', top: 'Z', to: 'q0', push: 'aZ', name: 'Push the first a' },
+      { id: 'u2', from: 'q0', read: 'a', top: 'a', to: 'q0', push: 'aa', name: 'Push another a' },
+      { id: 'u3', from: 'q0', read: 'b', top: 'a', to: 'q1', push: '', name: 'First b: pop an a, go to q₁' },
+      { id: 'u4', from: 'q1', read: 'b', top: 'a', to: 'q1', push: '', name: 'Another b: pop an a' },
+      { id: 'u5', from: 'q0', read: '', top: 'a', to: 'q2', push: 'a', name: 'Guess: no b’s, an a is spare' },
+      { id: 'u6', from: 'q1', read: '', top: 'a', to: 'q2', push: 'a', name: 'Guess: b’s matched, an a is spare' }
+    ],
+    prune: null,
+    diagram() {
+      const y = 120, r = 30, x0 = 96, x1 = 236, x2 = 376;
+      const loop0 = loopPath(x0, y, r, -90), loop1 = loopPath(x1, y, r, -90);
+      return {
+        vb: '0 -34 460 322',
+        nodes: [{ id: 'q0', x: x0, y, final: false }, { id: 'q1', x: x1, y, final: false }, { id: 'q2', x: x2, y, final: true }],
+        paths: [
+          { ids: ['u1', 'u2'], d: loop0 }, { ids: ['u4'], d: loop1 },
+          { ids: ['u3'], d: `M${x0 + r + 2} ${y} L${x1 - r - 3} ${y}` },
+          { ids: ['u6'], d: `M${x1 + r + 2} ${y} L${x2 - r - 3} ${y}` },
+          { ids: ['u5'], d: `M${x0} ${y + r + 2} C${x0} ${y + 120} ${x2} ${y + 120} ${x2} ${y + r + 4}` }
+        ],
+        labels: [
+          { id: 'u1', text: tlabel(this.T[0]), x: x0, y: -26, anchor: 'middle' },
+          { id: 'u2', text: tlabel(this.T[1]), x: x0, y: -8, anchor: 'middle' },
+          { id: 'u4', text: tlabel(this.T[3]), x: x1, y: -8, anchor: 'middle' },
+          { id: 'u3', text: tlabel(this.T[2]), x: (x0 + x1) / 2, y: y - 10, anchor: 'middle' },
+          { id: 'u6', text: tlabel(this.T[5]), x: (x1 + x2) / 2, y: y - 10, anchor: 'middle' },
+          { id: 'u5', text: tlabel(this.T[4]), x: (x0 + x2) / 2, y: y + 108, anchor: 'middle' }
+        ],
+        start: { d: `M8 ${y} L${x0 - r - 3} ${y}`, tx: 8, ty: y - 10 },
+        caption: { x: 230, y: 268, text: 'q₂ is the only final state' }
+      };
+    },
+    explain(t) {
+      switch (t.id) {
+        case 'u1': return { title: 'Push the first a', body: 'The machine reads an a. The stack top is Z₀, the floor marker, so Z₀ stays and an a goes on top of it.', why: 'Z₀ never leaves during the a-phase. It is how the machine can tell later that no a is left.' };
+        case 'u2': return { title: 'Push another a', body: 'Another a on the tape and an a on top of the stack: push one more a. The height of the stack now counts the a’s read so far.', why: 'Counting with a stack is exactly what a finite automaton cannot do, and why this language needs a PDA.' };
+        case 'u3': return { title: 'First b: pop an a, go to q₁', body: 'The first b is read. It cancels one a, so the machine pops an a. It also moves to q₁, where pushing a’s is no longer allowed.', why: 'Changing state is how the machine remembers that the a’s are over. It is what rejects strings like abab.' };
+        case 'u4': return { title: 'Another b: pop an a', body: 'Every further b cancels one more a. Each b and the a it removes are used up as a pair.', why: 'If the a’s run out while b’s remain, then j is at least i, and the string fails.' };
+        case 'u5': return { title: 'Guess: there are no b’s', body: 'No input is read. The machine guesses that the string has no b’s at all and jumps to the final state q₂, leaving the stack alone. This only works if the input is already empty.', why: 'An a on top proves at least one a is unmatched. A PDA may guess. The string is accepted if any guess works out.' };
+        default: return { title: 'Guess: the b’s are matched', body: 'No input is read. All b’s are used up and an a is still on top. That a is the proof that i > j, so the machine moves to the final state q₂ with the stack unchanged.', why: 'This ε-move is the whole point of the language. The spare a is the evidence that there were more a’s than b’s.' };
+      }
+    },
+    acceptMsg: (input) => { const i = countCh(input, 'a'), j = countCh(input, 'b'); return `Input finished in final state q₂. There are ${i} a’s and ${j} b’s, and ${i} > ${j}.`; },
+    diagnose(cfg, input) {
+      const rem = input.length - cfg.i, top = cfg.stack[0], nx = input[cfg.i];
+      if (!top) return 'The stack is empty, so the machine cannot move.';
+      if (cfg.st === 'q2') return `The machine is in q₂ with ${rem} symbol${rem > 1 ? 's' : ''} still unread. q₂ has no outgoing moves.`;
+      if (rem === 0) return top.s === 'Z' ? `The input ended in ${stLab(cfg.st)} and only Z₀ is left on the stack. No spare a exists, so the machine cannot jump to q₂. The number of a’s is not larger than the number of b’s.` : `The input ended in ${stLab(cfg.st)}.`;
+      if (nx === 'b' && top.s === 'Z') return 'The next symbol is b but the top of the stack is Z₀. Every a has already been cancelled and a b is still waiting. So there are at least as many b’s as a’s.';
+      if (nx === 'a' && cfg.st === 'q1') return 'An a appeared after a b. In q₁ the machine only accepts b’s, because the string has to look like a’s followed by b’s.';
+      return `No move fits state ${stLab(cfg.st)}, input ${nx} and stack top ${lab(top.s)}.`;
+    }
+  }
+};
+
+let uid = 0;
+const mkStack = arr => arr.map(s => ({ s, id: ++uid }));
+const keyOf = cfg => cfg.st + '|' + cfg.i + '|' + cfg.stack.map(c => c.s).join('');
+const MAXSTACK = 30, MAXINPUT = 24;
+
+function legal(spec, input, cfg, ignoreCap) {
+  const out = [];
+  if (!cfg.stack.length) return out;
+  const top = cfg.stack[0].s;
+  for (const t of spec.T) {
+    if (t.from !== cfg.st || t.top !== top) continue;
+    if (t.read !== '' && input[cfg.i] !== t.read) continue;
+    if (!ignoreCap && cfg.stack.length - 1 + t.push.length > MAXSTACK) continue;
+    out.push(t);
+  }
+  return out;
+}
+function hiddenByCap(spec, input, cfg) { return legal(spec, input, cfg, true).length - legal(spec, input, cfg).length; }
+function applyMove(spec, input, cfg, t, fresh) {
+  const top = cfg.stack[0], rest = cfg.stack.slice(1);
+  const mk = fresh ? mkStack : (arr => arr.map(s => ({ s, id: 0 })));
+  let stack;
+  if (t.push.endsWith(top.s)) stack = [...mk(t.push.slice(0, t.push.length - 1).split('').filter(Boolean)), top, ...rest];
+  else stack = [...mk(t.push.split('').filter(Boolean)), ...rest];
+  return { st: t.to, i: cfg.i + (t.read ? 1 : 0), stack };
+}
+function isAccept(spec, input, cfg) {
+  if (cfg.i !== input.length) return false;
+  return spec.accept === 'empty' ? cfg.stack.length === 0 : spec.finals.includes(cfg.st);
+}
+function best(spec, input, cfg, memo) {
+  const k = keyOf(cfg);
+  if (memo.has(k)) return memo.get(k);
+  let res;
+  if (isAccept(spec, input, cfg)) res = { acc: true, len: 0 };
+  else if (spec.prune && spec.prune(cfg, input.length - cfg.i)) res = { acc: false, len: 0 };
+  else {
+    let b = null;
+    for (const t of legal(spec, input, cfg)) {
+      const r = best(spec, input, applyMove(spec, input, cfg, t, false), memo);
+      const c = { acc: r.acc, len: r.len + 1 };
+      if (!b || (c.acc && !b.acc) || (c.acc === b.acc && (c.acc ? c.len < b.len : c.len > b.len))) b = c;
+    }
+    res = b || { acc: false, len: 0 };
+  }
+  memo.set(k, res);
+  return res;
+}
+function suggest(spec, input, cfg, memo) {
+  let pick = null;
+  for (const t of legal(spec, input, cfg)) {
+    const r = best(spec, input, applyMove(spec, input, cfg, t, false), memo);
+    const c = { t, acc: r.acc, len: r.len + 1 };
+    if (!pick || (c.acc && !pick.acc) || (c.acc === pick.acc && (c.acc ? c.len < pick.len : c.len > pick.len))) pick = c;
+  }
+  return pick;
+}
+function initCfg(spec) { return { st: spec.start, i: 0, stack: mkStack(spec.init) }; }
+function accepts(spec, input) {
+  return best(spec, input, { st: spec.start, i: 0, stack: spec.init.map(s => ({ s, id: 0 })) }, new Map()).acc;
+}
+// ENGINE-END
+
+/* ---------- UI ---------- */
+const $ = s => document.querySelector(s);
+const memoCache = new Map();
+const S = { qid: 'q1', input: '', hist: [], pos: 0, mode: 'watch', playing: false, timer: null, speed: 950, hover: null, hints: false };
+const spec = () => SPECS[S.qid];
+const cur = () => S.hist[S.pos];
+function memo() {
+  const k = S.qid + '#' + S.input;
+  if (!memoCache.has(k)) memoCache.set(k, new Map());
+  return memoCache.get(k);
+}
+const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const inputLabel = s => s === '' ? 'ε' : s;
+
+function sanitize(str) {
+  const a = spec().alphabet;
+  return str.replace(/ε/g, '').split('').filter(ch => a.includes(ch)).join('').slice(0, MAXINPUT);
+}
+function load(str) {
+  pause();
+  S.input = sanitize(str);
+  S.hist = [{ cfg: initCfg(spec()), t: null }];
+  S.pos = 0;
+  $('#inp').value = S.input;
+  buildTape();
+  render();
+}
+function switchQ(id) {
+  pause(); S.qid = id;
+  renderStatic();
+  load(spec().presets[0]);
+}
+
+/* tape */
+const CELL = 44;
+function buildTape() {
+  const t = $('#tape');
+  const cls = { '0': 'k0', '1': 'k1', a: 'ka', b: 'kb' };
+  t.innerHTML = '<div class="head" id="head">read</div>' +
+    S.input.split('').map((ch, i) => `<div class="cell ${cls[ch]}" data-i="${i}">${ch}</div>`).join('') +
+    '<div class="cell endc" title="end of input">⊣</div>';
+}
+function renderTape() {
+  const i = cur().cfg.i;
+  document.querySelectorAll('#tape .cell[data-i]').forEach(c => c.classList.toggle('done', +c.dataset.i < i));
+  $('#head').style.transform = `translateX(${i * CELL}px)`;
+  const rem = S.input.slice(i);
+  $('#tapenote').textContent = S.input === '' ? 'The input is the empty string ε. The head is already on the end marker ⊣.' :
+    rem ? `Unread: ${rem}` : 'Everything has been read. The head sits on the end marker ⊣.';
+  const box = $('#tapebox'), x = i * CELL - box.clientWidth / 2;
+  if (box.scrollWidth > box.clientWidth) box.scrollTo({ left: Math.max(0, x), behavior: reduce ? 'auto' : 'smooth' });
+}
+
+/* diagram */
+function renderDiagram() {
+  const sp = spec(), d = sp.diagram();
+  const c = cur(), lastId = c.t ? c.t.id : null, hv = S.hover;
+  const on = ids => ids.includes(lastId), pv = ids => hv && ids.includes(hv);
+  let svg = `<svg viewBox="${d.vb}" role="img" aria-label="State diagram of the PDA"><defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--ink2)"/></marker>
+    <marker id="ahOn" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--hot)"/></marker>
+    <marker id="ahPv" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--ink)"/></marker></defs>`;
+  svg += `<path class="edge" d="${d.start.d}" marker-end="url(#ah)"/><text class="dcap" x="${d.start.tx}" y="${d.start.ty}">start</text>`;
+  for (const p of d.paths) {
+    const cl = on(p.ids) ? 'on' : pv(p.ids) ? 'pv' : '';
+    const mk = on(p.ids) ? 'ahOn' : pv(p.ids) ? 'ahPv' : 'ah';
+    svg += `<path class="edge ${cl}" d="${p.d}" marker-end="url(#${mk})"/>`;
+  }
+  for (const n of d.nodes) {
+    const isCur = n.id === c.cfg.st;
+    svg += `<circle class="node ${isCur ? 'cur' : ''}" cx="${n.x}" cy="${n.y}" r="32"/>`;
+    if (n.final) svg += `<circle class="node ${isCur ? 'cur' : ''}" cx="${n.x}" cy="${n.y}" r="25" style="fill:none"/>`;
+    svg += `<text class="ntxt" x="${n.x}" y="${n.y}">${stLab(n.id)}</text>`;
+  }
+  for (const l of d.labels) {
+    const cl = l.id === lastId ? 'on' : l.id === hv ? 'pv' : '';
+    svg += `<text class="elab ${cl}" x="${l.x}" y="${l.y}" text-anchor="${l.anchor}">${esc(l.text)}</text>`;
+  }
+  svg += `<text class="dcap" x="${d.caption.x}" y="${d.caption.y}" text-anchor="middle">${esc(d.caption.text)}</text></svg>`;
+  $('#dia').innerHTML = svg;
+}
+
+/* stack */
+const chipEls = new Map();
+function makeChip(c) {
+  const el = document.createElement('div');
+  const kind = c.s === 'S' ? 'variable' : c.s === 'Z' ? 'floor' : 'terminal';
+  el.className = 'chip k' + c.s;
+  el.dataset.id = c.id;
+  el.innerHTML = `<b>${lab(c.s)}</b><small>${kind}</small>`;
+  return el;
+}
+function renderStack() {
+  const stack = cur().cfg.stack, well = $('#well'), tube = $('#tube');
+  tube.dataset.size = stack.length <= 9 ? 'n' : stack.length <= 16 ? 'm' : 'd';
+  const keep = new Set(stack.map(c => c.id));
+  const wrap = tube.getBoundingClientRect();
+  for (const [id, el] of [...chipEls]) {
+    if (keep.has(id)) continue;
+    if (!reduce) {
+      const r = el.getBoundingClientRect(), g = el.cloneNode(true);
+      g.classList.remove('enter'); g.classList.add('flyer');
+      g.style.left = (r.left - wrap.left) + 'px'; g.style.top = (r.top - wrap.top) + 'px'; g.style.width = r.width + 'px';
+      tube.appendChild(g); setTimeout(() => g.remove(), 560);
+    }
+    el.remove(); chipEls.delete(id);
+  }
+  const fresh = stack.filter(c => !chipEls.has(c.id)).reverse();
+  fresh.forEach((c, n) => {
+    const el = makeChip(c);
+    if (!reduce) { el.classList.add('enter'); el.style.animationDelay = (n * 80) + 'ms'; setTimeout(() => { el.classList.remove('enter'); el.style.animationDelay = ''; }, 900 + n * 80); }
+    chipEls.set(c.id, el);
+  });
+  well.replaceChildren(...stack.map(c => chipEls.get(c.id)));
+  $('#stackinfo').textContent = stack.length ? `height ${stack.length} · top → bottom: ${stackStr(stack)}` : 'empty stack';
+  $('#stackinfo').title = stack.length ? `Top to bottom: ${stackStr(stack)}` : 'The stack is empty';
+  if (!stack.length) { well.innerHTML = '<p class="empty">The stack is empty.</p>'; chipEls.clear(); }
+}
+
+/* explanation */
+function endState() {
+  const sp = spec(), cfg = cur().cfg;
+  const acc = isAccept(sp, S.input, cfg), mv = legal(sp, S.input, cfg);
+  return { acc, stuck: !acc && mv.length === 0, mv };
+}
+function renderExplain() {
+  const sp = spec(), c = cur(), { acc, stuck } = endState();
+  const el = $('#explain');
+  let html;
+  if (S.pos === 0) {
+    html = `<p class="kicker">Start</p><h2>The machine is ready</h2>
+      <p>${sp.id === 'q1' ? 'The stack begins with the start symbol S. Think of the stack as a to-do list for the grammar: it holds what is still to be produced.' : 'The stack begins with the floor marker Z₀ and the machine sits in q₀. Every a will be pushed, every b will pop one.'}</p>
+      <div class="ba"><div><span>Input left</span>${esc(inputLabel(S.input))}</div><div><span>Stack (top first)</span>${esc(stackStr(c.cfg.stack))}</div></div>
+      <p class="why"><b>Try this:</b> press Step, or switch to <b>You drive</b> and make the choices yourself.</p>`;
+  } else {
+    const prev = S.hist[S.pos - 1].cfg, t = c.t, ex = sp.explain(t, prev, c.cfg, S.input);
+    html = `<p class="kicker">Step ${S.pos} · ${esc(t.name)}</p><h2>${esc(ex.title)}</h2><p>${esc(ex.body)}</p>
+      <code class="delta">${esc(delta(t))}</code>
+      <div class="ba"><div><span>Before</span>input ${esc(inputLabel(S.input.slice(prev.i)))}<br>stack ${esc(stackStr(prev.stack))}</div><div><span>After</span>input ${esc(inputLabel(S.input.slice(c.cfg.i)))}<br>stack ${esc(stackStr(c.cfg.stack))}</div></div>
+      <p class="why"><b>Why:</b> ${esc(ex.why)}</p>`;
+  }
+  if (acc) html += `<div class="verdict ok"><b>Accepted</b>${esc(sp.acceptMsg(S.input))}</div>`;
+  else if (stuck) {
+    const any = best(sp, S.input, initCfg(sp), memo()).acc;
+    html += `<div class="verdict bad"><b>${any ? 'This path is stuck' : 'Rejected'}</b>${esc(sp.diagnose(c.cfg, S.input))}${any ? ' Another path can still accept this string. Go back to a fork and try a different move.' : ' No other path can accept it either, so the string is rejected.'}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+/* fork */
+function renderFork() {
+  const sp = spec(), cfg = cur().cfg, card = $('#forkcard');
+  const { acc, stuck, mv } = endState();
+  const replay = S.pos < S.hist.length - 1 ? S.hist[S.pos + 1].t : null;
+  const sug = mv.length ? suggest(sp, S.input, cfg, memo()) : null;
+  const drive = S.mode === 'drive';
+  let html = '<h3>Choices from here</h3>';
+  if (!mv.length) {
+    html += `<p class="forknote">${acc ? 'No moves are needed. The machine has accepted.' : 'No transition applies. The machine halts.'}</p>`;
+  } else {
+    html += '<div class="fork">';
+    for (const t of mv) {
+      const r = best(sp, S.input, applyMove(sp, S.input, cfg, t, false), memo());
+      const showBadge = !drive || S.hints;
+      const badge = showBadge ? (r.acc ? '<span class="bd y">can still accept</span>' : '<span class="bd n">dead end</span>') : '<span class="bd q">?</span>';
+      const isPick = drive ? (S.hints && sug && sug.t.id === t.id) : (replay ? replay.id === t.id : sug && sug.t.id === t.id);
+      const isPrev = drive && replay && replay.id === t.id;
+      const extra = (drive && isPick ? '<span class="bd q inl">suggested</span>' : '') + (isPrev ? '<span class="bd q inl">your earlier move</span>' : '');
+      const inner = `<span class="nm">${esc(t.name)}</span>${extra}${badge}<span class="dl">${esc(delta(t))}</span>`;
+      html += drive ? `<button class="mv ${isPick ? 'pick' : ''} ${isPrev ? 'prev' : ''}" data-tid="${t.id}">${inner}</button>` : `<div class="mv ${isPick ? 'pick' : ''}" data-tid="${t.id}">${inner}</div>`;
+    }
+    html += '</div>';
+    let note;
+    if (drive) note = 'Nothing moves until you pick a move. A wrong turn is allowed, and the status line tells you when the string can no longer be accepted. Use Back to undo.';
+    else if (mv.length > 1) note = best(sp, S.input, initCfg(sp), memo()).acc ? 'The machine has more than one legal move here. A PDA accepts if any sequence of guesses works, so it takes the highlighted move, the one that leads to acceptance.' : 'More than one move is legal here, but none of them can lead to acceptance. The highlighted move survives the longest.';
+    else note = 'Only one move fits the current state, input symbol and stack top.';
+    html += `<p class="forknote">${note}</p>`;
+    const hid = hiddenByCap(sp, S.input, cfg);
+    if (hid) html += `<p class="forknote">${hid} move${hid > 1 ? 's are' : ' is'} hidden because the demo stack limit of ${MAXSTACK} symbols was reached.</p>`;
+  }
+  card.innerHTML = html;
+  card.querySelectorAll('.mv').forEach(b => {
+    b.addEventListener('mouseenter', () => { S.hover = b.dataset.tid; renderDiagram(); });
+    b.addEventListener('mouseleave', () => { S.hover = null; renderDiagram(); });
+    b.addEventListener('focus', () => { S.hover = b.dataset.tid; renderDiagram(); });
+    b.addEventListener('blur', () => { S.hover = null; renderDiagram(); });
+    if (b.tagName === 'BUTTON') b.addEventListener('click', () => { const t = sp.T.find(x => x.id === b.dataset.tid); S.hover = null; commit(t); });
+  });
+}
+
+/* lens */
+function sentForms() {
+  const forms = ['S'];
+  for (let k = 1; k <= S.pos; k++) {
+    const h = S.hist[k];
+    if (h.t.id === 't1' || h.t.id === 't2') forms.push(S.input.slice(0, h.cfg.i) + h.cfg.stack.map(c => c.s).join(''));
+  }
+  return forms;
+}
+const fmtForm = f => f === '' ? 'ε' : f.split('').map(ch => ch === 'S' ? '<i>S</i>' : ch).join('');
+function renderLens() {
+  const el = $('#lens'), cfg = cur().cfg;
+  if (S.qid === 'q1') {
+    const forms = sentForms();
+    const consumed = S.input.slice(0, cfg.i), stackS = cfg.stack.map(c => c.s).join('');
+    const zerosRead = countCh(consumed, '0'), onesRead = countCh(consumed, '1'), onesWait = countCh(stackS, '1');
+    el.innerHTML = `<h3>Grammar lens</h3>
+      <p class="lensnote" style="margin:0 0 10px">The text already read plus the stack (top first) always spells the current form of the sentence. Watch it follow the grammar derivation.</p>
+      <p class="kicker">Right now</p>
+      <div class="form" style="margin:4px 0 12px"><span class="consumed">${consumed ? esc(consumed) : '<span style="color:var(--ink2)">(nothing read)</span>'}</span><span class="arrow">+</span><span>${cfg.stack.length ? fmtForm(stackS) : '<span style="color:var(--ink2)">ε</span>'}</span></div>
+      <p class="kicker">Derivation so far</p>
+      <div class="form">${forms.map((f, k) => `${k ? '<span class="arrow">⇒</span>' : ''}<span class="f ${k === forms.length - 1 ? 'last' : ''}">${fmtForm(f)}</span>`).join('')}</div>
+      <div class="meters"><div class="meter"><span>0s read</span><b>${zerosRead}</b></div><div class="meter"><span>1s read</span><b>${onesRead}</b></div><div class="meter"><span>1s waiting on stack</span><b>${onesWait}</b></div></div>
+      <p class="lensnote">Each expansion S → 0S111 adds one 0 and three 1s to the promises. That is why the language is 0ⁿ1³ⁿ.</p>`;
+  } else {
+    const consumed = S.input.slice(0, cfg.i), aR = countCh(consumed, 'a'), bR = countCh(consumed, 'b');
+    let toks = '';
+    for (let k = 0; k < aR; k++) {
+      const paired = k >= aR - bR;
+      toks += paired ? `<div class="pr"><div class="tok a">a</div><div class="tok b">b</div></div>` : `<div class="pr"><div class="tok a spare">a</div></div>`;
+    }
+    // pairs are the most recently pushed a's (top of stack pops first), spare a's sit lower
+    const spare = Math.max(0, aR - bR);
+    el.innerHTML = `<h3>Balance lens</h3>
+      <p class="lensnote" style="margin:0 0 10px">Every b cancels one a. The a’s that are left, outlined in gold, are the proof that i &gt; j.</p>
+      <div class="pairs">${toks || '<span class="how">No a’s read yet.</span>'}</div>
+      <div class="gauge">a’s read <b>${aR}</b> · b’s read <b>${bR}</b> · spare a’s <b>${spare}</b></div>
+      <div class="meters"><div class="meter"><span>i so far</span><b>${aR}</b></div><div class="meter"><span>j so far</span><b>${bR}</b></div><div class="meter"><span>stack height</span><b>${cfg.stack.length}</b></div></div>
+      <p class="lensnote">${cfg.st === 'q2' ? 'In q₂ the check is done. A spare a was found.' : spare > 0 ? 'At least one a is spare, so the string is on track as long as no more b’s arrive than a’s.' : bR > 0 ? 'No spare a is left. If b’s keep coming, the machine gets stuck on Z₀.' : 'Waiting for b’s. The stack height equals the number of a’s.'}</p>`;
+  }
+}
+
+/* log */
+function renderLog() {
+  const rows = S.hist.map((h, k) => `<tr class="row ${k === S.pos ? 'now' : ''} ${k > S.pos ? 'fut' : ''}" data-k="${k}">
+    <td>${k + 1}</td><td>${stLab(h.cfg.st)}</td><td>${esc(inputLabel(S.input.slice(h.cfg.i)))}</td><td>${esc(stackStr(h.cfg.stack))}</td><td>${h.t ? esc(h.t.name) : 'start'}</td></tr>`).join('');
+  $('#log').innerHTML = `<thead><tr><th>Step</th><th>State</th><th>Input left</th><th>Stack</th><th>Move</th></tr></thead><tbody>${rows}</tbody>`;
+  document.querySelectorAll('#log tr.row').forEach(r => r.addEventListener('click', () => { pause(); S.pos = +r.dataset.k; render(); }));
+  const now = document.querySelector('#log tr.now');
+  if (now) { const box = now.closest('.logbox'); box.scrollTop = now.offsetTop - box.clientHeight / 2; }
+}
+
+/* status + controls */
+function renderStatus() {
+  const sp = spec(), cfg = cur().cfg, { acc, stuck } = endState();
+  const alive = best(sp, S.input, cfg, memo()).acc;
+  let pills = `<span class="pill">State ${stLab(cfg.st)}</span><span class="pill">Step ${S.pos}</span>`;
+  if (acc) pills += '<span class="pill ok">Accepted</span>';
+  else if (stuck) pills += '<span class="pill bad">Stuck</span>';
+  else if (alive) pills += '<span class="pill ok">An accepting path is still open</span>';
+  else pills += '<span class="pill bad">Doomed: no path from here can accept</span>';
+  $('#status').innerHTML = pills;
+  const tube = $('#tube');
+  tube.classList.toggle('ok', acc);
+  tube.classList.remove('bad');
+  if (stuck && !acc) { void tube.offsetWidth; tube.classList.add('bad'); }
+}
+function renderControls() {
+  const drive = S.mode === 'drive';
+  const hasFwd = S.pos < S.hist.length - 1;
+  const atEnd = !hasFwd && endState().mv.length === 0;
+  $('#bBack').disabled = S.pos === 0;
+  // In You drive mode the machine never moves on its own: Forward only replays moves you already made.
+  $('#bStep').disabled = drive ? !hasFwd : atEnd;
+  $('#bStep').textContent = drive ? 'Forward' : 'Step';
+  $('#bStep').title = drive ? 'Replay your next move (→)' : 'Step (→)';
+  $('#bPlay').hidden = drive;
+  $('#bPlay').textContent = S.playing ? 'Pause' : (atEnd && S.pos > 0 ? 'Replay' : 'Play');
+  $('#mWatch').setAttribute('aria-pressed', String(!drive));
+  $('#mDrive').setAttribute('aria-pressed', String(drive));
+  $('#hintWrap').hidden = !drive;
+  document.querySelector('.wrap').classList.toggle('drive', drive);
+}
+
+function render() {
+  S.hover = null;
+  renderTape(); renderDiagram(); renderStack(); renderExplain(); renderFork(); renderLens(); renderLog(); renderStatus(); renderControls();
+  document.querySelectorAll('#presets .pchip').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === S.input));
+}
+
+/* actions */
+function commit(t) {
+  S.hist.length = S.pos + 1;
+  const nc = applyMove(spec(), S.input, cur().cfg, t, true);
+  S.hist.push({ cfg: nc, t }); S.pos++;
+  render();
+}
+function stepForward() {
+  if (S.pos < S.hist.length - 1) { S.pos++; render(); return true; }
+  if (S.mode === 'drive') return false; // never choose a move for the user
+  const o = suggest(spec(), S.input, cur().cfg, memo());
+  if (!o) return false;
+  commit(o.t); return true;
+}
+function stepBack() { pause(); if (S.pos > 0) { S.pos--; render(); } }
+function pause() { S.playing = false; clearTimeout(S.timer); if (S.hist.length) renderControls(); }
+function play() {
+  if (S.mode === 'drive') return;
+  const atEnd = S.pos >= S.hist.length - 1 && endState().mv.length === 0;
+  if (atEnd) { S.pos = 0; render(); }
+  S.playing = true; renderControls();
+  const tick = () => {
+    if (!S.playing || S.mode === 'drive') return;
+    if (!stepForward()) { pause(); return; }
+    const done = S.pos >= S.hist.length - 1 && endState().mv.length === 0;
+    if (done) { pause(); return; }
+    S.timer = setTimeout(tick, S.speed);
+  };
+  S.timer = setTimeout(tick, 250);
+}
+
+/* static chrome per question */
+function renderStatic() {
+  const sp = spec();
+  $('#tabs').innerHTML = Object.values(SPECS).map(q => `<button class="tab" role="tab" aria-selected="${q.id === S.qid}" data-q="${q.id}"><b>${q.tab}</b><span>${q.tabSub}</span></button>`).join('');
+  $('#tabs').querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => switchQ(b.dataset.q)));
+  $('#brief').innerHTML = `
+    <div class="bcell wide"><p class="kicker">Question</p><p>${esc(sp.statement)}</p></div>
+    <div class="bcell"><p class="kicker">Language</p><p class="big">${sp.lang}</p></div>
+    <div class="bcell"><p class="kicker">Acceptance</p><p>${sp.acceptText}</p></div>
+    <div class="bcell" style="grid-column:1/-1"><p class="kicker">The idea</p><p>${esc(sp.idea)}</p></div>`;
+  $('#alpha').textContent = `Alphabet: ${sp.alphabet.split('').join(', ')} · up to ${MAXINPUT} symbols · leave empty for ε`;
+  $('#inp').setAttribute('aria-label', `Input string over ${sp.alphabet.split('').join(' and ')}`);
+  $('#presets').innerHTML = sp.presets.map(p => `<button class="pchip" data-s="${p}" aria-pressed="false"><span>${inputLabel(p)}</span><span class="tick ${accepts(sp, p) ? 'y' : 'n'}">${accepts(sp, p) ? 'accept' : 'reject'}</span></button>`).join('');
+  $('#presets').querySelectorAll('.pchip').forEach(b => b.addEventListener('click', () => load(b.dataset.s)));
+  $('#explorer').innerHTML = `<p class="how" style="flex-basis:100%">Type any string above, or build one from numbers. The verdict shows before you run it.</p>`;
+  $('#build').innerHTML = sp.id === 'q1'
+    ? `<label class="how" for="nA">n =</label><input class="num" id="nA" type="number" min="0" max="6" value="2"><button class="btn ghost" id="bBuild">Build 0ⁿ1³ⁿ</button><span class="how" id="bInfo"></span>`
+    : `<label class="how" for="nA">i (a’s) =</label><input class="num" id="nA" type="number" min="0" max="12" value="3"><label class="how" for="nB">j (b’s) =</label><input class="num" id="nB" type="number" min="0" max="12" value="2"><button class="btn ghost" id="bBuild">Build aⁱbʲ</button><span class="how" id="bInfo"></span>`;
+  const info = () => {
+    const a = Math.max(0, Math.min(sp.id === 'q1' ? 6 : 12, Math.floor(+$('#nA').value || 0)));
+    if (sp.id === 'q1') return { s: '0'.repeat(a) + '1'.repeat(3 * a), msg: `n = ${a}: ${a} zeros, ${3 * a} ones` };
+    const b = Math.max(0, Math.min(12, Math.floor(+$('#nB').value || 0)));
+    return { s: 'a'.repeat(a) + 'b'.repeat(b), msg: `i = ${a}, j = ${b}: ${a > b ? 'i > j, so the string is in L' : 'i is not greater than j, so it is not in L'}` };
+  };
+  const upd = () => { $('#bInfo').textContent = info().msg; };
+  document.querySelectorAll('#build input').forEach(i => i.addEventListener('input', upd));
+  $('#bBuild').addEventListener('click', () => { const r = info(); upd(); load(r.s); });
+  upd();
+  chipEls.clear(); $('#well').innerHTML = '';
+}
+
+/* wiring */
+$('#loadBtn').addEventListener('click', () => load($('#inp').value));
+$('#inp').addEventListener('keydown', e => { if (e.key === 'Enter') load($('#inp').value); });
+$('#bReset').addEventListener('click', () => { pause(); S.pos = 0; render(); });
+$('#bBack').addEventListener('click', stepBack);
+$('#bStep').addEventListener('click', () => { pause(); stepForward(); });
+$('#bPlay').addEventListener('click', () => { if (S.mode === 'drive') return; S.playing ? pause() : play(); });
+$('#mWatch').addEventListener('click', () => { S.mode = 'watch'; render(); });
+$('#mDrive').addEventListener('click', () => { pause(); S.mode = 'drive'; render(); });
+$('#speed').addEventListener('change', e => { S.speed = +e.target.value; });
+$('#hints').addEventListener('change', e => { S.hints = e.target.checked; renderFork(); });
+document.addEventListener('keydown', e => {
+  const tg = e.target.tagName;
+  if (tg === 'INPUT' || tg === 'SELECT' || tg === 'TEXTAREA' || tg === 'BUTTON') return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); pause(); stepForward(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); stepBack(); }
+  else if (e.key === ' ') { e.preventDefault(); if (S.mode === 'watch') { S.playing ? pause() : play(); } }
+  else if (e.key === 'r' || e.key === 'R') { pause(); S.pos = 0; render(); }
+});
+
+renderStatic();
+load(SPECS.q1.presets[0]);
+</script>
+
+</body>
+</html>
