@@ -1,36 +1,33 @@
-# PDA Stack Lab — Pushdown Automata Simulator
+# PDA Stack Lab: Pushdown Automata Simulator
 
-**Theory of Computation (FLA) · Online Submission**
+**Theory of Computation (FLA). Online submission.**
 
-# 🚀 [**▶ OPEN LIVE DEMO: https://jboiie.github.io/pda-stack-lab/**](https://jboiie.github.io/pda-stack-lab/)
+# [Open the live demo: jboiie.github.io/pda-stack-lab](https://jboiie.github.io/pda-stack-lab/)
 
-> Submitted **online** by the team below. Interactive pushdown automata simulator + project poster.
+Submitted online by the team below.
 
 ## Team
 
-| Name | Register Number |
+| Name | Register number |
 |------|-----------------|
 | JAI | RA2411026010131 |
 | Aggam Singh Arora | RA2411026010139 |
 | Aidam Shashank | RA2411026010136 |
 
-## What is this?
+## What it does
 
-PDA Stack Lab is a single-page web app with two pushdown automata you can run, step back, break and take apart:
+A single-page simulator for two pushdown automata. Step forward and back, watch the stack, see every move the machine can choose, or pick the moves yourself.
 
-- **Q1:** PDA for `0^n 1^(2n)` — accept by empty stack, derived from the grammar `S → 0S11 | ε`.
-- **Q2:** PDA for strings with more `a`'s than `b`'s — accept by final state, with `Z0` as bottom marker.
-
-Features: step forward/back, live stack view, all nondeterministic choices shown, and manual control mode.
+- **Q1:** convert `S → 0S111 | ε` into a PDA and test `00111111`. Language `0^n 1^(3n)`, accepts by empty stack.
+- **Q2:** PDA for `L = {a^i b^j | i > j}`, tested on `aaabb` and `aabbb`. Accepts by final state `q2`.
 
 ## Files
 
-- [`index.html`](index.html) — the simulator (open in any browser, no install)
-- [`FLA-Poster.pdf`](FLA-Poster.pdf) — project poster
+- [`index.html`](index.html): the simulator, no install needed
+- [`FLA-Poster.pdf`](FLA-Poster.pdf): project poster
 
 ## Run
 
-Visit **[jboiie.github.io/pda-stack-lab](https://jboiie.github.io/pda-stack-lab/)**, or open `index.html` in a browser.
+Open the [live demo](https://jboiie.github.io/pda-stack-lab/) or open `index.html` in a browser.
 
----
-*JAI (RA2411026010131) · Aggam Singh Arora (RA2411026010139) · Aidam Shashank (RA2411026010136) — online submission.*
+JAI (RA2411026010131), Aggam Singh Arora (RA2411026010139), Aidam Shashank (RA2411026010136). Online submission.
