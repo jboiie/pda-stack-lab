@@ -1,6 +1,6 @@
 # PDA Stack Lab: Pushdown Automata Simulator
 
-**Theory of Computation (FLA). Online submission.**
+**Formal Language and Automata (FLA). Online submission.**
 
 # [Open the live demo: jboiie.github.io/pda-stack-lab](https://jboiie.github.io/pda-stack-lab/)
 
